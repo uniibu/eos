@@ -57,13 +57,13 @@ function main() {
       console.log(privateLog)
       await waitFor(DEVELOPMENT ? 3000 : 30000);
       privateLog = null;
-      process.stdout.write('\x1Bc');
+      console.log('\x1Bc');
     }
-    const key = await dataBase.get('secret.key').value();
+    const secretKey = await dataBase.get('secret.key').value();
     const infolog = boxen(`Environment: ${process.env.NODE_ENV}
-        Withdraw Url: http://${(await helpers.getPubIp()).trim()}:8866/withdraw?key=${key}
+        Withdraw Url: http://${(await helpers.getPubIp()).trim()}:8866/withdraw?key=${secretKey}
         Wallet Address: ${ HOTWALLET_ACCOUNT}
-        Secret Key: ${ key}`.replace(/ {2,}/g, ''), { padding: 1, margin: 1, borderStyle: 'double' });
+        Secret Key: ${ secretKey}`.replace(/ {2,}/g, ''), { padding: 1, margin: 1, borderStyle: 'double' });
     infolog.split('\n').forEach(logger.boxen);
     await waitFor(3000);
 

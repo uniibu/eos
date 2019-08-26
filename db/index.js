@@ -1,7 +1,7 @@
 import low from 'lowdb';
 import FileSync from 'lowdb/adapters/FileAsync';
-
-const adapter = new FileSync('db.json')
+import path from 'path';
+const adapter = new FileSync(path.resolve(__dirname,'../db.json'))
 
 const db = async() => {
     return await low(adapter)

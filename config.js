@@ -6,7 +6,7 @@ let hwacc = 'whatevertest';
 if(isDev && !isStaging) {
   hwacc = 'whatevertest'
 }else if(isDev && isStaging) {
-  hwacc = 'crunchystage'
+  hwacc = 'alovelystage'
 }else if(isProd) {
   hwacc = 'th3f4tw4113t'
 }

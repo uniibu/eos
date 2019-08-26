@@ -14,7 +14,7 @@ export default async function runMain(main) {
       engine.stop().then(process.exit)
     });
   } catch (error) {
-    logger.error("An untrapped error occurred.", error)
+    logger.error(error)
     process.exit(1)
   }
 }

@@ -1,0 +1,5 @@
+db.json
+log.pid
+logs/
+.env
+bitsler_eos.sh

@@ -1,0 +1,9 @@
+.env
+.account
+db.json
+back.account
+node_modules
+.theia
+keys.json
+logs/
+log.pid

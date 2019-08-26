@@ -1,0 +1,36 @@
+{
+  "name": "eos-wallet",
+  "version": "1.0.0",
+  "description": "simple eos wallet",
+  "main": "index.js",
+  "scripts": {
+    "start": "pm2 flush && pm2 start index.js --name eos --node-args=\"-r esm -r dotenv/config\" && pm2 logs eos",
+    "stop": "pm2 stop eos && pm2 delete eos && pm2 kill",
+    "restart": "yarn stop && pm2 flush && yarn start",
+    "release:git": "github-release release --user uniibu --repo eos-wallet --tag v1.0.0 --name \"v1.0.0\" --description \"eos wallet release\"",
+    "release:upload": "github-release upload --user uniibu  --repo eos-wallet --tag v1.0.0 --name \"bitsler_eos.sh\" --file bitsler_eos.sh",
+    "release:now": "yarn release:git && yarn release:upload"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@dfuse/client": "^0.2.10",
+    "boxen": "^4.1.0",
+    "commander": "^3.0.0",
+    "dotenv": "^8.1.0",
+    "eosjs": "^20.0.0",
+    "eosjs-ecc": "^4.0.4",
+    "esm": "^3.2.25",
+    "fs-extra": "^8.1.0",
+    "koa": "^2.8.1",
+    "koa-bodyparser": "^4.2.1",
+    "koa-bouncer": "^6.0.4",
+    "koa-router": "^7.4.0",
+    "lowdb": "^1.0.0",
+    "node-fetch": "^2.6.0",
+    "phin": "^3.4.0",
+    "queuing": "^1.2.0",
+    "winston": "^3.2.1",
+    "winston-daily-rotate-file": "^3.10.0",
+    "ws": "^7.1.2"
+  }
+}

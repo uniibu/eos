@@ -1,0 +1,105 @@
+#!/usr/bin/env node
+
+const program = require('commander');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
+const p = require('phin');
+const { exec } = require('child_process');
+
+const pkgjson = require(path.resolve(__dirname, '../package.json'));
+const {secret} = require(path.resolve(__dirname, '../db.json'))
+const rootPath = path.resolve(__dirname, '../')
+
+const reqLocal = async (route, data) => {
+  try {
+    let uri = `http://localhost:${process.env.PORT}/${route}?key=${secret.key}`;
+    if (data) {
+      uri += `&${data}`;
+    }
+    const payload = {
+      url: uri,
+      method: 'get',
+      parse: 'json'
+    };
+    return await p(payload);
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+program
+  .version(pkgjson.version)
+  .description(`EOS Wallet CLI v${pkgjson.version}`);
+
+program
+  .command('getBalance')
+  .description('Get current balance of master address')
+  .action(async () => {
+    const r = await reqLocal('balance');
+    if (r.body.success) {
+      console.log(`${r.body.balance.value} ${r.body.balance.currency}`);
+    } else {
+      console.log('Internal Error');
+    }
+  });
+program
+  .command('validateAddress <address>')
+  .description('Validates if an address format is correct and active')
+  .action(async address => {
+    const r = await reqLocal('validate', `address=${address}`);
+    if (r.body.success) {
+      console.log('Address is valid and active');
+    } else {
+      console.log('Invalid or inactive address');
+    }
+  });
+
+program
+  .command('getTransactions')
+  .description('Returns the last 100 transactions by default of the master address')
+  .option('-l, --limit [number]', 'Number of transactions to return')
+  .option('-f, --filter [deposit|withdraw]', 'Accepts values \'deposit\' or \'withdraw\'')
+  .action(async options => {
+    const limit = options.limit || 10;
+    const filter = options.filter;
+    let data = limit ? `limit=${limit}` : '';
+    if (filter) {
+      const a = `filter=${filter}`;
+      if (data) {
+        data += `&${a}`;
+      } else {
+        data += a;
+      }
+    }
+    const r = await reqLocal('gettransactions', data);
+    if (r.body.success) {
+      console.log(JSON.stringify(r.body.transactions, null, 2));
+    } else {
+      console.log('Internal Error');
+    }
+  });
+program
+  .command('stop')
+  .description('Gracefully stops the eos node')
+  .action(async () => {
+    exec('yarn stop', { cwd: rootPath }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return;
+      }
+      console.log(`stdout: ${stdout}`);
+      console.log(`stderr: ${stderr}`);
+    });
+  });
+
+if (!process.argv.slice(2).length) {
+  program.outputHelp();
+}
+
+program
+  .command('*')
+  .action(() => {
+    console.error('Invalid command: %s\nSee --help for a list of available commands.', program.args[0]);
+    process.exit(1);
+  });
+program.parse(process.argv);

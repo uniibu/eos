@@ -71,7 +71,7 @@ class Engine {
     if (!balance) {
       return 0;
     }
-    return balance[1] || 0
+    return balance || 0
   }
   async hasAccount(account) {
     const response = await this.client.stateTable("eosio", account, "userres")

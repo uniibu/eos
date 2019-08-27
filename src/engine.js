@@ -67,7 +67,7 @@ class Engine {
   async getBalance() {
     const resp = await this.client.stateTable("eosio.token", HOTWALLET_ACCOUNT, "accounts")
     let { balance } = resp.rows[0].json
-    balance = balance.match(/^([0-9]+\.?[0-9]+)\sEOS$/)
+    balance = parseFloat(balance)
     if (!balance) {
       return 0;
     }

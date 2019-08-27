@@ -160,7 +160,7 @@ class Engine {
     }
     return;
   }
-  async send(to, amount, memo) {
+  async send(to, amount, memo = "") {
     try {
       const currBalance = await this.getBalance();
       if (currBalance < amount) {

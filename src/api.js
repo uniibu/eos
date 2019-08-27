@@ -70,7 +70,9 @@ function apiStart(engine) {
     ctx.validateBody('amount').required('Missing amount').toDecimal('Invalid amount').tap(n => helpers.truncateFour(n))
     ctx.validateBody('address').required('Missing address').isString().trim();
     ctx.validateBody('memo').optional().isString().trim()
-    ctx.check(ctx.vals.memo.length <= 256, 'Memo length exceeded');
+    if(ctx.vals.memo) {
+      ctx.check(ctx.vals.memo.length <= 256, 'Memo length exceeded');
+    }
     ctx.check(ctx.vals.amount && ctx.vals.amount >= 0.0001, 'Invalid amount');
     ctx.check(ctx.vals.address, 'Invalid address');
     const validAddress = await engine.hasAccount(ctx.vals.address);

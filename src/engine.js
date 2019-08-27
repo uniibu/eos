@@ -2,8 +2,8 @@ import { dynamicMessageDispatcher, InboundMessageType } from "@dfuse/client"
 import { Api, JsonRpc, RpcError } from 'eosjs';
 import { TextEncoder, TextDecoder } from 'util'
 import logger from './logger';
-import { EOS_REST_API, DEVELOPMENT,STAGING, HOTWALLET_ACCOUNT, STAKE } from '../config';
-import { getStake,getBlock,updateStake, updateBlock } from '../db/index.js';
+import { EOS_REST_API, DEVELOPMENT, STAGING, HOTWALLET_ACCOUNT, STAKE } from '../config';
+import { getStake, getBlock, updateStake, updateBlock } from '../db/index.js';
 import notify from './notify';
 
 class Engine {
@@ -36,7 +36,7 @@ class Engine {
       start_block = -start_block;
     }
     let irreversible_only = true;
-    if(DEVELOPMENT && !STAGING){
+    if (DEVELOPMENT && !STAGING) {
       irreversible_only = false
     }
     logger.info('Starting at block: ', latestBlock + start_block)
@@ -116,14 +116,15 @@ class Engine {
         payload.memo = memo || "";
         payload.ledger = block_num;
         if (payload.memo === 'stake' && !this.initialStake && parseFloat(payload.amount) > 2) {
-          this.stake().then(() => {
+          this.stake(STAKE).then(() => {
             updateStake(true);
             this.initialStake = true;
           })
           logger.info(`Deposit ${payload.amount} ${payload.token} for initial staking of ${STAKE * 2} EOS (${STAKE}:CPU,${STAKE}:NET`);
         } else {
-          logger.info(`Deposit of ${payload.amount} ${payload.token} from ${payload.from} with memo ${payload.memo||'empty'} and txid ${payload.hash}`);
+          logger.info(`Deposit of ${payload.amount} ${payload.token} from ${payload.from} with memo ${payload.memo || 'empty'} and txid ${payload.hash}`);
           notify(payload);
+          this.checkResource();
         }
       }
     }
@@ -145,12 +146,17 @@ class Engine {
   }
   async checkResource() {
     logger.info('Checking resources...')
-    const { cpu_limit } = await this.rpc.get_account(HOTWALLET_ACCOUNT);
+    const { cpu_limit, ram_quota, ram_usage } = await this.rpc.get_account(HOTWALLET_ACCOUNT);
     const cpuUsed = (cpu_limit.used / 1000000).toFixed(4)
     const cpuMax = (cpu_limit.max / 1000000).toFixed(4)
     if ((cpuUsed / cpuMax) > 0.95) {
       logger.info('Resources not enough, staking...');
-      await this.stake()
+      await this.stake(STAKE)
+    }
+    const ramPerc = ((ram_quota - ram_usage) / ram_quota).toFixed(2);
+    if (parseFloat(ramPerc) < 0.25) {
+      logger.info('Resources not enough, buying ram...');
+      await this.buyRam(STAKE)
     }
     return;
   }
@@ -188,6 +194,28 @@ class Engine {
       }
       return [false, JSON.stringify(e.json, null, 2)]
     }
+  }
+  async buyRam(amount = 1) {
+    const resp = await client.stateTable("eosio", "eosio", "rammarket")
+    const { base, quote } = resp.rows[0].json
+    const perByte = (parseFloat(quote.balance) / parseFloat(base.balance)).toFixed(8) * 1024
+    const byteAmount = Math.round((amount / perByte) * 1000);
+    const result = await api.transact({
+      actions: [{
+        account: 'eosio',
+        name: 'buyrambytes',
+        authorization: [{
+          actor: HOTWALLET_ACCOUNT,
+          permission: 'active',
+        }],
+        data: {
+          payer: HOTWALLET_ACCOUNT,
+          receiver: HOTWALLET_ACCOUNT,
+          bytes: byteAmount,
+        },
+      }]
+    })
+    return result;
   }
   async stake(amount = 1) {
     try {

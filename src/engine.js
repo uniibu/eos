@@ -3,7 +3,7 @@ import { Api, JsonRpc, RpcError } from 'eosjs';
 import { TextEncoder, TextDecoder } from 'util'
 import logger from './logger';
 import { EOS_REST_API, DEVELOPMENT,STAGING, HOTWALLET_ACCOUNT, STAKE } from '../config';
-import { db } from '../db/index.js';
+import { getStake,getBlock,updateStake, updateBlock } from '../db/index.js';
 import notify from './notify';
 
 class Engine {
@@ -24,10 +24,9 @@ class Engine {
       progress: this.onProgress.bind(this),
     })
 
-    this.db = await db();
-    this.initialStake = await this.db.get('stake.initial').value() || false;
+    this.initialStake = getStake() || false;
     logger.info("Engine starting in " + process.env.NODE_ENV + " mode")
-    let latest = await this.db.get('block.latest').value();
+    let latest = getBlock();
     const latestBlock = await this.latestBlock();
     let start_block = latestBlock - latest
     if (start_block > 3600) {
@@ -118,9 +117,8 @@ class Engine {
         payload.ledger = block_num;
         if (payload.memo === 'stake' && !this.initialStake && parseFloat(payload.amount) > 2) {
           this.stake().then(() => {
-            this.db.set('stake.initial', true).then(() => {
-              this.initialStake = true;
-            })
+            updateStake(true);
+            this.initialStake = true;
           })
           logger.info(`Deposit ${payload.amount} ${payload.token} for initial staking of ${STAKE * 2} EOS (${STAKE}:CPU,${STAKE}:NET`);
         } else {
@@ -135,7 +133,7 @@ class Engine {
     logger.info(`Syncing upto block ${blockNum}`);
     this.lastCommittedBlockNum = blockNum
     this.ensureStream().mark({ atBlockNum: blockNum })
-    await this.db.set('block.latest', this.lastCommittedBlockNum).write();
+    updateBlock(this.lastCommittedBlockNum)
   }
   async latestBlock() {
     const { head_block_num, last_irreversible_block_num } = await this.rpc.get_info();

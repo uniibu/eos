@@ -1,5 +1,5 @@
 import { PrivateKey } from 'eosjs-ecc';
-import { db } from '../db/index.js'
+import { updateOwner, updateActive, updateKey } from '../db/index.js'
 import logger from './logger';
 import helpers from './helpers'
 
@@ -12,14 +12,11 @@ async function getRandom() {
 }
 export default async function generate() {
   try {
-    const dataBase = await db();
     const ownerStore = await getRandom();
-    await dataBase.set('owner.public', ownerStore.publicKey).write();
-    await dataBase.set('owner.private', ownerStore.privateKey).write();
+    updateOwner(ownerStore.publicKey, ownerStore.privateKey);
     const activeScore = await getRandom()
-    await dataBase.set('active.public', activeScore.publicKey).write();
-    await dataBase.set('active.private', activeScore.privateKey).write();
-    await dataBase.set('secret.key',helpers.genKey()).write();
+    updateActive(activeScore.publicKey, activeScore.privateKey)
+    updateKey(helpers.genKey())
     return { owner: ownerStore.publicKey, active: activeScore.publicKey }
   } catch (e) {
     logger.error(e)

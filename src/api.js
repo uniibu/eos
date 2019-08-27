@@ -3,7 +3,7 @@ import Router from 'koa-router';
 import bouncer from 'koa-bouncer';
 import bodyParser from 'koa-bodyparser';
 import logger from './logger';
-import { db } from '../db/index.js'
+import { getKey } from '../db/index.js'
 import helpers from './helpers';
 
 function apiStart(engine) {
@@ -35,8 +35,7 @@ function apiStart(engine) {
   });
 
   router.use(async (ctx, next) => {
-    const dataBase = await db();
-    const secretKey = await dataBase.get('secret.key').value();
+    const secretKey = getKey();
     ctx.validateQuery('key').required('Missing key').isString().trim();
     ctx.check(secretKey === ctx.vals.key,'Forbidden')
     ctx.request.query.key = helpers.hideKey(ctx.request.query.key)

@@ -88,7 +88,7 @@ sudo docker volume rm eos-data
 sudo docker pull unibtc/eos:latest
 docker run -v eos-data:/usr/src/app --name=eos-node -d \
       -p 8866:8866 \
-      -v $HOME/.eos/xlm.env:/usr/src/app/.env \
+      -v $HOME/.eos/eos.env:/usr/src/app/.env \
       -v $HOME/.eos/db.json:/usr/src/app/db.json \
       -v $HOME/.eos/logs:/usr/src/app/logs \
       unibtc/eos:latest

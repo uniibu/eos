@@ -45,29 +45,29 @@ export const getBlock = () => {
   connect();
   return db.get('block.latest').value();
 };
-export const updateOwner = (public,private) => {
+export const updateOwner = (publicKey,privateKey) => {
   connect();
-  db.set('owner.public', public).write();
-  db.set('owner.private', private).write();
+  db.set('owner.public', publicKey).write();
+  db.set('owner.private', privateKey).write();
   return;
 };
 export const getOwner = () => {
   connect();
-  const public = db.get('owner.public').value();
-  const private = db.get('owner.private').value();
-  return {public,private}
+  const publicKey = db.get('owner.public').value();
+  const privateKey = db.get('owner.private').value();
+  return {public:publicKey,private:privateKey}
 };
-export const updateActive = (public,private) => {
+export const updateActive = (publicKey,privateKey) => {
   connect();
-  db.set('active.public', public).write();
-  db.set('active.private', private).write();
+  db.set('active.public', publicKey).write();
+  db.set('active.private', privateKey).write();
   return;
 };
 export const getActive = () => {
   connect();
-  const public = db.get('active.public').value();
-  const private = db.get('active.private').value();
-  return {public,private}
+  const publicKey = db.get('active.public').value();
+  const privateKey = db.get('active.private').value();
+  return {public:publicKey,private:privateKey}
 };
 export const updateKey = key => {
   connect();

@@ -104,7 +104,7 @@ class Engine {
       if (from == HOTWALLET_ACCOUNT) return;
       const payload = {}
       payload.hash = message.data.trx_id
-      const tokenAmount = quantity.match(/^(\d\.\d{0,4})\s([A-Z]{3,4})$/);
+      const tokenAmount = quantity.match(/^(\d+\.\d{0,4})\s([A-Z]{3,4})$/);
       if (!tokenAmount) return;
       const amount = parseFloat(tokenAmount[1]).toFixed(4);
       const token = tokenAmount[2];

@@ -28,6 +28,7 @@ function apiStart(engine) {
         ctx.body = { success: false, error: err.message };
         return;
       } else {
+        ctx.status = err.status || 400;
         ctx.body = { success: false, error: err.message };
         return;
       }
@@ -80,14 +81,16 @@ function apiStart(engine) {
     const formatAddress = await helpers.checkAccountFormat(ctx.vals.address);
     ctx.check(formatAddress, 'Invalid address format');
     const [success,result] = await engine.send(ctx.vals.address, ctx.vals.amount, ctx.vals.memo);
-    const payload = { success };
-    if (!success) {
-       payload.error = result;
-     } else {
-       payload.txid = result.transaction_id;
-     }
-    ctx.body = payload;
-
+    if(result && result.transaction_id) {
+      const verify = await engine.verifyTransaction(result.transaction_id);
+      if(!verify) {
+        return ctx.throw(400,'Transaction failed');
+      }
+    }
+    if(!success) {
+      return ctx.throw(400,result);
+    }
+    ctx.body = { success, txid: result.transaction_id };
   });
   app.use(router.routes());
   app.use(router.allowedMethods());

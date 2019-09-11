@@ -1,4 +1,4 @@
-import { dynamicMessageDispatcher, InboundMessageType } from "@dfuse/client"
+import { dynamicMessageDispatcher, InboundMessageType, waitFor } from "@dfuse/client"
 import { Api, JsonRpc, RpcError } from 'eosjs';
 import { TextEncoder, TextDecoder } from 'util'
 import logger from './logger';
@@ -65,9 +65,11 @@ class Engine {
     logger.info("Stream connected, ready to receive messages")
   }
   async getBalance() {
-    const resp = await this.client.stateTable("eosio.token", HOTWALLET_ACCOUNT, "accounts")
-    let { balance } = resp.rows[0].json
-    balance = parseFloat(balance)
+    const resp = await rpc.get_currency_balance('eosio.token', HOTWALLET_ACCOUNT, 'eos')
+    let balance = 0;
+    if(resp.length) {
+      balance = parseFloat(resp[0]);
+    }
     if (!balance) {
       return 0;
     }
@@ -136,13 +138,12 @@ class Engine {
     this.ensureStream().mark({ atBlockNum: blockNum })
     updateBlock(this.lastCommittedBlockNum)
   }
-  async latestBlock() {
+  async latestBlock(head = false) {
     const { head_block_num, last_irreversible_block_num } = await this.rpc.get_info();
-    if (!DEVELOPMENT) {
+    if (!DEVELOPMENT && !head) {
       return last_irreversible_block_num;
-    } else {
-      return head_block_num;
     }
+    return head_block_num;
   }
   async checkResource() {
     logger.info('Checking resources...')
@@ -159,6 +160,25 @@ class Engine {
       await this.buyRam(STAKE)
     }
     return;
+  }
+  async verifyTransaction(txid) {
+    if(!txid) return false;
+    try {
+      await waitFor(3000);
+      const result = await this.rpc.history_get_transaction(txid);
+      const block = await this.latestBlock(true);
+      if(result.trx.receipt.status === 'executed' && result.block_num <= block) {
+        return true;
+      }
+      return false;
+    }catch(e) {
+      if(e instanceof RpcError) {
+        if(e.json.code == 404) {
+          logger.error('transaction '+txid+' not found')
+        }
+      }
+      return false;
+    }
   }
   async send(to, amount, memo = "") {
     try {

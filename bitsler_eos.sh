@@ -83,8 +83,6 @@ fi
 echo "Updating eos..."
 sudo docker stop eos-node
 sudo docker rm eos-node
-sudo rm -rf ~/docker/volumes/eos-data
-sudo docker volume rm eos-data
 sudo docker pull unibtc/eos:latest
 docker run -v eos-data:/usr/src/app --name=eos-node -d \
       -p 8866:8866 \

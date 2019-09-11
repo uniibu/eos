@@ -82,7 +82,12 @@ function apiStart(engine) {
     ctx.check(formatAddress, 'Invalid address format');
     const [success,result] = await engine.send(ctx.vals.address, ctx.vals.amount, ctx.vals.memo);
     if(result && result.transaction_id) {
-      const verify = await engine.verifyTransaction(result.transaction_id);
+      let retry = 3;
+      let verify = false;
+      for(var i=0;i<retry;i++) {
+        verify = await engine.verifyTransaction(result.transaction_id);
+        if(verify) break;
+      }
       if(!verify) {
         return ctx.throw(400,'Transaction failed');
       }

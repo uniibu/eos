@@ -177,6 +177,7 @@ class Engine {
           logger.error('transaction '+txid+' not found')
         }
       }
+      logger.error(e.stack, e.message, e);
       return false;
     }
   }

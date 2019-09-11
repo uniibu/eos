@@ -1,14 +1,14 @@
 {
   "name": "eos-wallet",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "simple eos wallet",
   "main": "index.js",
   "scripts": {
     "start": "pm2 flush && pm2 start index.js --name eos --node-args=\"-r esm -r dotenv/config\" && pm2 logs eos",
     "stop": "pm2 stop eos && pm2 delete eos && pm2 kill",
     "restart": "yarn stop && pm2 flush && yarn start",
-    "release:git": "github-release release --user uniibu --repo eos --tag v1.0.12 --name \"v1.0.12\" --description \"eos wallet release\"",
-    "release:upload": "github-release upload --user uniibu  --repo eos --tag v1.0.12 --name \"bitsler_eos.sh\" --file bitsler_eos.sh",
+    "release:git": "github-release release --user uniibu --repo eos --tag v1.0.13 --name \"v1.0.13\" --description \"eos wallet release\"",
+    "release:upload": "github-release upload --user uniibu  --repo eos --tag v1.0.13 --name \"bitsler_eos.sh\" --file bitsler_eos.sh",
     "release:now": "yarn release:git && yarn release:upload"
   },
   "license": "MIT",

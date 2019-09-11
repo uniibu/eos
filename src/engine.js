@@ -2,7 +2,7 @@ import { dynamicMessageDispatcher, InboundMessageType, waitFor } from "@dfuse/cl
 import { Api, JsonRpc, RpcError } from 'eosjs';
 import { TextEncoder, TextDecoder } from 'util'
 import logger from './logger';
-import { EOS_REST_API, DEVELOPMENT, STAGING, HOTWALLET_ACCOUNT, STAKE } from '../config';
+import { EOS_REST_API, EOS_REST_API2, DEVELOPMENT, STAGING, HOTWALLET_ACCOUNT, STAKE } from '../config';
 import { getStake, getBlock, updateStake, updateBlock } from '../db/index.js';
 import notify from './notify';
 
@@ -13,6 +13,7 @@ class Engine {
     this.lastCommittedBlockNum = 0;
     this.signProv = signProv;
     this.rpc = new JsonRpc(EOS_REST_API, { fetch });
+    this.rpc2 = new JsonRpc(EOS_REST_API2, {fetch});
     this.api = new Api({ rpc: this.rpc, signatureProvider: this.signProv, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
     this.initialStake = false;
   }
@@ -166,19 +167,21 @@ class Engine {
     try {
       await waitFor(3000);
       const result = await this.rpc.history_get_transaction(txid);
+      const result2 = await this.rpc2.history_get_transaction(txid);
       const block = await this.latestBlock(true);
-      if(result.trx.receipt.status === 'executed' && result.block_num <= block) {
-        return true;
+      if(result.trx.receipt.status === 'executed' && result2.trx.receipt.status === 'executed' && result.block_num <= block) {
+        return [true];
       }
-      return false;
+      return [false];
     }catch(e) {
       if(e instanceof RpcError) {
         if(e.json.code == 404) {
           logger.error('transaction '+txid+' not found')
+          return [false, 'not_found'];
         }
       }
       logger.error(e.stack, e.message, e);
-      return false;
+      return [false];
     }
   }
   async send(to, amount, memo = "") {

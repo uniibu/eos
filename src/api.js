@@ -81,21 +81,23 @@ function apiStart(engine) {
     const formatAddress = await helpers.checkAccountFormat(ctx.vals.address);
     ctx.check(formatAddress, 'Invalid address format');
     const [success,result] = await engine.send(ctx.vals.address, ctx.vals.amount, ctx.vals.memo);
+    if(!success || !result || !result.transaction_id) {
+      return ctx.throw(400,'not_found');
+    }
     if(result && result.transaction_id) {
       let retry = 3;
-      let verify = false;
+      let r;
       for(var i=0;i<retry;i++) {
-        verify = await engine.verifyTransaction(result.transaction_id);
-        if(verify) break;
+        r = await engine.verifyTransaction(result.transaction_id);
+        if(r[0] == true) break;
       }
-      if(!verify) {
-        return ctx.throw(400,'Transaction failed');
+      if(!r[0] && r[1] && r[1] == 'not_found') {
+        return ctx.throw(400,'not_found');
+      }else if(!r[0] && !r[1]) {
+        ctx.body = { success, txid: result.transaction_id };
       }
+      ctx.body = { success, txid: result.transaction_id };
     }
-    if(!success) {
-      return ctx.throw(400,result);
-    }
-    ctx.body = { success, txid: result.transaction_id };
   });
   app.use(router.routes());
   app.use(router.allowedMethods());

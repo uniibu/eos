@@ -65,7 +65,7 @@ class Engine {
     logger.info("Stream connected, ready to receive messages")
   }
   async getBalance() {
-    const resp = await rpc.get_currency_balance('eosio.token', HOTWALLET_ACCOUNT, 'eos')
+    const resp = await this.rpc.get_currency_balance('eosio.token', HOTWALLET_ACCOUNT, 'eos')
     let balance = 0;
     if(resp.length) {
       balance = parseFloat(resp[0]);

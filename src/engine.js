@@ -13,7 +13,7 @@ class Engine {
     this.lastCommittedBlockNum = 0;
     this.signProv = signProv;
     this.rpc = new JsonRpc(EOS_REST_API, { fetch });
-    this.rpc2 = new JsonRpc(EOS_REST_API2, {fetch});
+    this.rpc2 = new JsonRpc(EOS_REST_API2, { fetch });
     this.api = new Api({ rpc: this.rpc, signatureProvider: this.signProv, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
     this.initialStake = false;
   }
@@ -26,7 +26,7 @@ class Engine {
     })
 
     this.initialStake = getStake() || false;
-    logger.info("Engine starting in " + process.env.NODE_ENV + " mode")
+    logger.info(`Engine starting in ${process.env.NODE_ENV} mode`)
     let latest = getBlock();
     const latestBlock = await this.latestBlock();
     let start_block = latestBlock - latest
@@ -42,15 +42,13 @@ class Engine {
     }
     logger.info('Starting at block: ', latestBlock + start_block)
     this.lastCommittedBlockNum = latestBlock + start_block;
-    this.stream = await this.client.streamActionTraces(
-      {
-        accounts: "eosio.token",
-        action_names: "transfer",
-        receivers: HOTWALLET_ACCOUNT
-      },
-      dispatcher,
-      {
-        start_block: start_block,
+    this.stream = await this.client.streamActionTraces({
+      accounts: "eosio.token",
+      action_names: "transfer",
+      receivers: HOTWALLET_ACCOUNT
+    },
+      dispatcher, {
+        start_block,
         with_progress: 10,
         irreversible_only
       }
@@ -68,7 +66,7 @@ class Engine {
   async getBalance() {
     const resp = await this.rpc.get_currency_balance('eosio.token', HOTWALLET_ACCOUNT, 'eos')
     let balance = 0;
-    if(resp.length) {
+    if (resp.length) {
       balance = parseFloat(resp[0]);
     }
     if (!balance) {
@@ -81,7 +79,7 @@ class Engine {
     return response.rows.length > 0
   }
   async listTx(limit, filter) {
-    const opts = { limit: limit, sort: "desc" }
+    const opts = { limit, sort: "desc" }
     filter = filter === 'withdraw' ? 'from' : 'to'
     const resp = await this.client.searchTransactions(`account:eosio.token receiver:eosio.token data.${filter}:${HOTWALLET_ACCOUNT}`, opts)
     return resp.transactions || [];
@@ -163,20 +161,20 @@ class Engine {
     return;
   }
   async verifyTransaction(txid) {
-    if(!txid) return false;
+    if (!txid) return false;
     try {
       await waitFor(3000);
       const result = await this.rpc.history_get_transaction(txid);
       const result2 = await this.rpc2.history_get_transaction(txid);
       const block = await this.latestBlock(true);
-      if(result.trx.receipt.status === 'executed' && result2.trx.receipt.status === 'executed' && result.block_num <= block) {
+      if (result.trx.receipt.status === 'executed' && result2.trx.receipt.status === 'executed' && result.block_num <= block) {
         return [true];
       }
       return [false];
-    }catch(e) {
-      if(e instanceof RpcError) {
-        if(e.json.code == 404) {
-          logger.error('transaction '+txid+' not found')
+    } catch (e) {
+      if (e instanceof RpcError) {
+        if (e.json.code == 404) {
+          logger.error(`transaction ${txid} not found`)
           return [false, 'not_found'];
         }
       }
@@ -212,7 +210,7 @@ class Engine {
       await this.checkResource();
       return [true, result]
     } catch (e) {
-      logger.error('\nCaught exception: ' + e);
+      logger.error(`\nCaught exception: ${e}`);
       if (e instanceof RpcError) {
         logger.error(JSON.stringify(e.json, null, 2));
       }
@@ -266,7 +264,7 @@ class Engine {
         });
       return result;
     } catch (e) {
-      logger.error('\nCaught exception: ' + e);
+      logger.error(`\nCaught exception: ${e}`);
       if (e instanceof RpcError) {
         logger.error(JSON.stringify(e.json, null, 2));
       }
@@ -285,6 +283,5 @@ class Engine {
     throw new Error("Stream should be set at this runtime execution point")
   }
 }
-
 
 export { Engine }

@@ -80,16 +80,23 @@ if [[ $EUID -ne 0 ]]; then
    echo "This script must be ran as root or sudo" 1>&2
    exit 1
 fi
-echo "Updating eos..."
+
+VERSION=$1
+echo "Updating eos to $VERSION"
+
 sudo docker stop eos-node
 sudo docker rm eos-node
-sudo docker pull unibtc/eos:latest
+sudo docker images -a | grep "unibtc/eos" | awk '{print $3}' | xargs docker rmi
+sudo docker pull unibtc/eos:$VERSION
+sudo docker volume rm eos-data
+sudo docker volume create --name=eos-data
+
 docker run -v eos-data:/usr/src/app --name=eos-node -d \
       -p 8866:8866 \
       -v $HOME/.eos/eos.env:/usr/src/app/.env \
       -v $HOME/.eos/db.json:/usr/src/app/db.json \
       -v $HOME/.eos/logs:/usr/src/app/logs \
-      unibtc/eos:latest
+      unibtc/eos:$VERSION
 EOL
 
 cat >/usr/bin/eos-rm <<'EOL'

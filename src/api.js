@@ -24,7 +24,7 @@ function apiStart(engine) {
     } catch (err) {
       logger.error(err.stack || err.message);
       if (err instanceof bouncer.ValidationError) {
-        ctx.status = err.message === 'Forbidden' ? 403:400;
+        ctx.status = err.message === 'Forbidden' ? 403 : 400;
         ctx.body = { success: false, error: err.message };
         return;
       } else {
@@ -38,7 +38,7 @@ function apiStart(engine) {
   router.use(async (ctx, next) => {
     const secretKey = getKey();
     ctx.validateQuery('key').required('Missing key').isString().trim();
-    ctx.check(secretKey === ctx.vals.key,'Forbidden')
+    ctx.check(secretKey === ctx.vals.key, 'Forbidden')
     ctx.request.query.key = helpers.hideKey(ctx.request.query.key)
     delete ctx.vals.key
     await next();
@@ -52,10 +52,10 @@ function apiStart(engine) {
   router.get('/validate', async ctx => {
     logger.info('RPC /validate was called:', ctx.request.query);
     ctx.validateQuery('address').required('Missing address').isString().trim();
-    ctx.check(helpers.checkAccountFormat(ctx.vals.address),'invalid format')
+    ctx.check(helpers.checkAccountFormat(ctx.vals.address), 'invalid format')
     const validAddress = await engine.hasAccount(ctx.vals.address);
     ctx.check(validAddress, 'account not found');
-    ctx.body = { success: true}
+    ctx.body = { success: true }
   });
 
   router.get('/gettransactions', async ctx => {
@@ -71,7 +71,7 @@ function apiStart(engine) {
     ctx.validateBody('amount').required('Missing amount').toDecimal('Invalid amount').tap(n => helpers.truncateFour(n))
     ctx.validateBody('address').required('Missing address').isString().trim();
     ctx.validateBody('memo').optional().isString().trim()
-    if(ctx.vals.memo) {
+    if (ctx.vals.memo) {
       ctx.check(ctx.vals.memo.length <= 256, 'Memo length exceeded');
     }
     ctx.check(ctx.vals.amount && ctx.vals.amount >= 0.0001, 'Invalid amount');
@@ -80,29 +80,18 @@ function apiStart(engine) {
     ctx.check(validAddress, 'Inactive address');
     const formatAddress = await helpers.checkAccountFormat(ctx.vals.address);
     ctx.check(formatAddress, 'Invalid address format');
-    const [success,result] = await engine.send(ctx.vals.address, ctx.vals.amount, ctx.vals.memo);
-    if(!success || !result || !result.transaction_id) {
-      return ctx.throw(400,'not_found');
+    const result = await engine.send(ctx.vals.address, ctx.vals.amount, ctx.vals.memo);
+    if (!result || !result.transaction_id) {
+      return ctx.throw(400, 'not_found');
+    } else {
+      ctx.body = { success: true, txid: result.transaction_id };
     }
-    if(result && result.transaction_id) {
-      let retry = 3;
-      let r;
-      for(var i=0;i<retry;i++) {
-        r = await engine.verifyTransaction(result.transaction_id);
-        if(r[0] == true) break;
-      }
-      if(!r[0] && r[1] && r[1] == 'not_found') {
-        return ctx.throw(400,'not_found');
-      }else if(!r[0] && !r[1]) {
-        ctx.body = { success, txid: result.transaction_id };
-      }
-      ctx.body = { success, txid: result.transaction_id };
-    }
+
   });
   app.use(router.routes());
   app.use(router.allowedMethods());
 
-  app.listen(process.env.PORT,'0.0.0.0',() => {
+  app.listen(process.env.PORT, '0.0.0.0', () => {
     logger.info('API Listening on port', process.env.PORT)
   })
 

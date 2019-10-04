@@ -2,7 +2,7 @@ import { dynamicMessageDispatcher, InboundMessageType, waitFor } from "@dfuse/cl
 import { Api, JsonRpc, RpcError } from 'eosjs';
 import { TextEncoder, TextDecoder } from 'util'
 import logger from './logger';
-import { EOS_REST_API, EOS_REST_API2, DEVELOPMENT, STAGING, HOTWALLET_ACCOUNT, STAKE } from '../config';
+import { EOS_REST_API, DEVELOPMENT, STAGING, HOTWALLET_ACCOUNT, STAKE } from '../config';
 import { getStake, getBlock, updateStake, updateBlock } from '../db/index.js';
 import notify from './notify';
 
@@ -12,10 +12,21 @@ class Engine {
     this.stream = undefined;
     this.lastCommittedBlockNum = 0;
     this.signProv = signProv;
-    this.rpc = new JsonRpc(EOS_REST_API, { fetch });
-    this.rpc2 = new JsonRpc(EOS_REST_API2, { fetch });
+    this.rpc = new JsonRpc(EOS_REST_API, { fetch: this.customizedFetch.bind(this) });
     this.api = new Api({ rpc: this.rpc, signatureProvider: this.signProv, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
     this.initialStake = false;
+  }
+  async customizedFetch(input, init) {
+    if (init.headers === undefined) {
+      init.headers = {}
+    }
+    const { token } = await this.client.getTokenInfo();
+    const headers = {
+      "Authorization": `Bearer ${token}`,
+      "X-Eos-Push-Guarantee": "in-block"
+    }
+    init.headers = Object.assign({}, init.headers, headers)
+    return fetch(input, init)
   }
 
   async start() {
@@ -160,28 +171,6 @@ class Engine {
     }
     return;
   }
-  async verifyTransaction(txid) {
-    if (!txid) return false;
-    try {
-      await waitFor(3000);
-      const result = await this.rpc.history_get_transaction(txid);
-      const result2 = await this.rpc2.history_get_transaction(txid);
-      const block = await this.latestBlock(true);
-      if (result.trx.receipt.status === 'executed' && result2.trx.receipt.status === 'executed' && result.block_num <= block) {
-        return [true];
-      }
-      return [false];
-    } catch (e) {
-      if (e instanceof RpcError) {
-        if (e.json.code == 404) {
-          logger.error(`transaction ${txid} not found`)
-          return [false, 'not_found'];
-        }
-      }
-      logger.error(e.stack, e.message, e);
-      return [false];
-    }
-  }
   async send(to, amount, memo = "") {
     try {
       const currBalance = await this.getBalance();
@@ -208,7 +197,7 @@ class Engine {
           expireSeconds: 30,
         });
       await this.checkResource();
-      return [true, result]
+      return result;
     } catch (e) {
       logger.error(`\nCaught exception: ${e}`);
       if (e instanceof RpcError) {
@@ -218,7 +207,7 @@ class Engine {
     }
   }
   async buyRam(amount = 1) {
-    const resp = await client.stateTable("eosio", "eosio", "rammarket")
+    const resp = await this.client.stateTable("eosio", "eosio", "rammarket")
     const { base, quote } = resp.rows[0].json
     const perByte = (parseFloat(quote.balance) / parseFloat(base.balance)).toFixed(8) * 1024
     const byteAmount = Math.round((amount / perByte) * 1000);

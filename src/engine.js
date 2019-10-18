@@ -120,6 +120,7 @@ class Engine {
       this.onProgress(blockId, blockNum, data.cursor)
       return
     } 
+    console.log(JSON.stringify(data,null,2))
     if(!data.isIrreversible) return;
     if(data.undo) return;
     if(data.trace.status !== 'EXECUTED') return;

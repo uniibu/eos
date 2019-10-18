@@ -1,5 +1,5 @@
 import {createLogger, format, transports} from 'winston';
-require('winston-daily-rotate-file');
+import 'winston-daily-rotate-file';
 const { combine, timestamp, printf } = format;
 const logFormat = printf(info => `${info.timestamp} [${info.level.toUpperCase()}]: ${info.message}`);
 const rtransport = new transports.DailyRotateFile({
@@ -8,8 +8,7 @@ const rtransport = new transports.DailyRotateFile({
   datePattern: 'YYYY-ww',
   zippedArchive: true,
   maxSize: null,
-  maxFiles: 10,
-  handleExceptions: true
+  maxFiles: 10
 });
 const ctransport = new transports.Console();
 const logger = createLogger({
@@ -36,7 +35,7 @@ wrap.error = (...obj) => {
     obj = obj.map(a => typeof a !== 'string' ? JSON.stringify(a) : a);
     logger.error(obj.join(' '));
   }else {
-    logger.error( obj.stack || obj.message || obj);
+    logger.error( JSON.stringify(obj.stack || obj.message || obj));
   }
 };
 wrap.warn = (...args) => {

@@ -2,10 +2,10 @@ import { dynamicMessageDispatcher, InboundMessageType, waitFor } from "@dfuse/cl
 import { Api, JsonRpc, RpcError } from 'eosjs';
 import { TextEncoder, TextDecoder } from 'util'
 import logger from './logger';
-import { EOS_REST_API, DEVELOPMENT, STAGING, HOTWALLET_ACCOUNT, STAKE } from '../config';
-import { getStake, getBlock, updateStake, updateBlock } from '../db/index.js';
+import { EOS_REST_API, DEVELOPMENT, HOTWALLET_ACCOUNT, STAKE } from '../config';
+import { getStake, getBlock, updateStake, updateBlock, updateCursor, getCursor } from '../db/index.js';
 import notify from './notify';
-
+import {getQuery} from './searchquery'
 class Engine {
   constructor(client, signProv) {
     this.client = client
@@ -20,9 +20,9 @@ class Engine {
     if (init.headers === undefined) {
       init.headers = {}
     }
-    const { token } = await this.client.getTokenInfo();
+    const r = await this.client.getTokenInfo();
     const headers = {
-      "Authorization": `Bearer ${token}`,
+      "Authorization": `Bearer ${r.token}`,
       "X-Eos-Push-Guarantee": "in-block"
     }
     init.headers = Object.assign({}, init.headers, headers)
@@ -30,12 +30,11 @@ class Engine {
   }
 
   async start() {
-    const dispatcher = dynamicMessageDispatcher({
-      listening: this.onListening.bind(this),
-      action_trace: this.onAction.bind(this),
-      progress: this.onProgress.bind(this),
-    })
-
+    let lastPersistedCursor = ""
+    const lastCursorPath = getCursor();
+    if(lastCursorPath) {
+      lastPersistedCursor = lastCursorPath
+    }
     this.initialStake = getStake() || false;
     logger.info(`Engine starting in ${process.env.NODE_ENV} mode`)
     let latest = getBlock();
@@ -47,21 +46,29 @@ class Engine {
     } else {
       start_block = -start_block;
     }
-    let irreversible_only = true;
-    if (DEVELOPMENT && !STAGING) {
-      irreversible_only = false
-    }
-    logger.info('Starting at block: ', latestBlock + start_block)
+
+    logger.info('Starting at block: ', latestBlock + start_block,'with cursor', lastPersistedCursor)
     this.lastCommittedBlockNum = latestBlock + start_block;
-    this.stream = await this.client.streamActionTraces({
-      accounts: "eosio.token",
-      action_names: "transfer",
-      receivers: HOTWALLET_ACCOUNT
-    },
-      dispatcher, {
-        start_block,
-        with_progress: 10,
-        irreversible_only
+    this.stream = await this.client.graphql(
+      getQuery,
+      (message) => {
+        if (message.type === "data") {
+          this.onResult(message.data)
+        }
+        if (message.type === "error") {
+          this.onError(message.errors, message.terminal)
+        }
+        if (message.type === "complete") {
+          this.onComplete()
+        }
+      },
+      {
+        variables: {
+          query: `account:eosio.token receiver:${HOTWALLET_ACCOUNT} action:transfer`,
+          lowBlockNum: this.lastCommittedBlockNum,
+          highBlockNum: 0,
+          cursor: lastPersistedCursor
+        }
       }
     )
 
@@ -99,34 +106,39 @@ class Engine {
     logger.info("Stream is now listening for action(s)")
   }
 
-  onProgress(message) {
-    const { block_id, block_num } = message.data
-    this.commit(block_id, block_num)
+  onProgress(blockId, blockNum, cursor) {
+    logger.info(`Live marker received @ ${blockId} ${blockNum}`)
+    this.lastCommittedBlockNum = blockNum
+    updateBlock(this.lastCommittedBlockNum)
+    this.commit(cursor)
   }
 
-  onAction(message) {
-    const { block_id, block_num } = message.data
-    if (block_num > this.lastCommittedBlockNum) {
-      this.commit(block_id, block_num)
-    }
-
-    const action = message.data.trace.act
-    if (message.type === InboundMessageType.ACTION_TRACE) {
-      const { from, to, quantity, memo } = action.data
+  onResult(message) {
+    const data = message.searchTransactionsForward
+    const { id: blockId, num: blockNum } = data.block
+    if (!data.trace) {
+      this.onProgress(blockId, blockNum, data.cursor)
+      return
+    } 
+    if(!data.isIrreversible) return;
+    if(data.undo) return;
+    if(data.trace.status !== 'EXECUTED') return;
+    for(const action of data.trace.matchingActions) {
+      const { from, to, quantity, memo } = action.json
       if (from == HOTWALLET_ACCOUNT) return;
       const payload = {}
-      payload.hash = message.data.trx_id
+      payload.hash = data.trace.id
       const tokenAmount = quantity.match(/^(\d+\.\d{0,4})\s([A-Z]{3,4})$/);
       if (!tokenAmount) return;
       const amount = parseFloat(tokenAmount[1]).toFixed(4);
       const token = tokenAmount[2];
-      if (parseFloat(amount) > 0) {
+       if (parseFloat(amount) > 0) {
         payload.amount = amount;
         payload.token = token;
         payload.from = from;
         payload.to = to;
         payload.memo = memo || "";
-        payload.ledger = block_num;
+        payload.ledger = blockNum;
         if (payload.memo === 'stake' && !this.initialStake && parseFloat(payload.amount) > 2) {
           this.stake(STAKE).then(() => {
             updateStake(true);
@@ -140,13 +152,11 @@ class Engine {
         }
       }
     }
+    this.commit(data.cursor)
   }
-
-  async commit(blockId, blockNum) {
-    logger.info(`Syncing upto block ${blockNum}`);
-    this.lastCommittedBlockNum = blockNum
-    this.ensureStream().mark({ atBlockNum: blockNum })
-    updateBlock(this.lastCommittedBlockNum)
+  async commit(cursor) {
+    this.ensureStream().mark({ cursor })
+    updateCursor(cursor)
   }
   async latestBlock(head = false) {
     const { head_block_num, last_irreversible_block_num } = await this.rpc.get_info();
@@ -211,7 +221,7 @@ class Engine {
     const { base, quote } = resp.rows[0].json
     const perByte = (parseFloat(quote.balance) / parseFloat(base.balance)).toFixed(8) * 1024
     const byteAmount = Math.round((amount / perByte) * 1000);
-    const result = await api.transact({
+    const result = await this.api.transact({
       actions: [{
         account: 'eosio',
         name: 'buyrambytes',
@@ -264,7 +274,14 @@ class Engine {
     await this.ensureStream().close()
     logger.info("Engine stopped");
   }
-
+  onError (errors, terminal)  {
+    logger.error(errors)
+    if (terminal) {
+      logger.info(
+        "Received a terminal 'error' message, the stream will automatically reconnects in 250ms"
+      )
+    }
+  }
   ensureStream() {
     if (this.stream) {
       return this.stream

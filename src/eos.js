@@ -10,7 +10,7 @@ import { DFUSE_API_KEY, DFUSE_API_NETWORK, HOTWALLET_ACCOUNT, DEVELOPMENT } from
 import { Engine } from './engine';
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
 import createAccount from './createAccount';
-import { getKey,getOwner,getActive } from '../db/index.js';
+import { getKey, getOwner, getActive } from '../db/index.js';
 import logger from './logger';
 import helpers from './helpers';
 import api from './api';
@@ -22,7 +22,7 @@ function main() {
       apiKey: DFUSE_API_KEY,
       network: DFUSE_API_NETWORK,
       apiTokenStore: new FileApiTokenStore("/tmp/dfuse-token.json"),
-      streamClientOptions: {
+      graphqlStreamClientOptions: {
         socketOptions: {
           reconnectDelayInMs: 250
         }

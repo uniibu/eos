@@ -88,6 +88,7 @@ sudo docker stop eos-node
 sudo docker rm eos-node
 sudo docker images -a | grep "unibtc/eos" | awk '{print $3}' | xargs docker rmi
 sudo docker pull unibtc/eos:$VERSION
+sudo rm -rf ~/docker/volumes/eos-data  || true
 sudo docker volume rm eos-data
 sudo docker volume create --name=eos-data
 

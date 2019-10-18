@@ -78,3 +78,14 @@ export const getKey = () => {
   connect();
   return db.get('secret.key').value();
 };
+
+export const updateCursor = cursor => {
+  connect();
+  db.set('cursor',cursor).write();
+  return;
+}
+
+export const getCursor = () => {
+  connect();
+  return db.get('cursor').value();
+}

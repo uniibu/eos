@@ -5,7 +5,7 @@ import logger from './logger';
 import { EOS_REST_API, DEVELOPMENT, HOTWALLET_ACCOUNT, STAKE } from '../config';
 import { getStake, getBlock, updateStake, updateBlock, updateCursor, getCursor } from '../db/index.js';
 import notify from './notify';
-import {getQuery} from './searchquery'
+import { getQuery } from './searchquery'
 class Engine {
   constructor(client, signProv) {
     this.client = client
@@ -15,6 +15,30 @@ class Engine {
     this.rpc = new JsonRpc(EOS_REST_API, { fetch: this.customizedFetch.bind(this) });
     this.api = new Api({ rpc: this.rpc, signatureProvider: this.signProv, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
     this.initialStake = false;
+    this.lastSync = 0;
+  }
+  async runner() {
+    this.syncCheck();
+    await waitFor(300000)
+    logger.info('Sync check...')
+    this.runner();
+  }
+  async syncCheck() {
+    try {
+      if (this.lastSync == 0) {
+        return this.start();
+      } else if (this.lastSync != 0 && (Date.now() - this.lastSync) >= 900000) {
+        // not sync in last 15mins
+        if (this.stream) {
+          await this.stop();
+        }
+        updateBlock("");
+        return this.start();
+      }
+      logger.info('Sync is working')
+    } catch (e) {
+      logger.error(e)
+    }
   }
   async customizedFetch(input, init) {
     if (init.headers === undefined) {
@@ -32,7 +56,7 @@ class Engine {
   async start() {
     let lastPersistedCursor = ""
     const lastCursorPath = getCursor();
-    if(lastCursorPath) {
+    if (lastCursorPath) {
       lastPersistedCursor = lastCursorPath
     }
     this.initialStake = getStake() || false;
@@ -47,7 +71,7 @@ class Engine {
       start_block = -start_block;
     }
 
-    logger.info('Starting at block: ', latestBlock + start_block,'with cursor', lastPersistedCursor)
+    logger.info('Starting at block: ', latestBlock + start_block, 'with cursor', lastPersistedCursor)
     this.lastCommittedBlockNum = latestBlock + start_block;
     this.stream = await this.client.graphql(
       getQuery,
@@ -61,8 +85,7 @@ class Engine {
         if (message.type === "complete") {
           this.onComplete()
         }
-      },
-      {
+      }, {
         variables: {
           query: `account:eosio.token receiver:${HOTWALLET_ACCOUNT} action:transfer`,
           lowBlockNum: this.lastCommittedBlockNum,
@@ -78,6 +101,7 @@ class Engine {
         "<============= Stream restarted =============>"
       )
       logger.info()
+      updateCursor("")
     }
     logger.info("Stream connected, ready to receive messages")
   }
@@ -115,16 +139,17 @@ class Engine {
 
   onResult(message) {
     const data = message.searchTransactionsForward
+    this.lastSync = Date.now();
     const { id: blockId, num: blockNum } = data.block
     if (!data.trace) {
       this.onProgress(blockId, blockNum, data.cursor)
       return
-    } 
-    console.log(JSON.stringify(data,null,2))
-    if(!data.isIrreversible) return;
-    if(data.undo) return;
-    if(data.trace.status !== 'EXECUTED') return;
-    for(const action of data.trace.matchingActions) {
+    }
+
+    if (!data.isIrreversible) return;
+    if (data.undo) return;
+    if (data.trace.status !== 'EXECUTED') return;
+    for (const action of data.trace.matchingActions) {
       const { from, to, quantity, memo } = action.json
       if (from == HOTWALLET_ACCOUNT) return;
       const payload = {}
@@ -133,7 +158,7 @@ class Engine {
       if (!tokenAmount) return;
       const amount = parseFloat(tokenAmount[1]).toFixed(4);
       const token = tokenAmount[2];
-       if (parseFloat(amount) > 0) {
+      if (parseFloat(amount) > 0) {
         payload.amount = amount;
         payload.token = token;
         payload.from = from;
@@ -275,9 +300,10 @@ class Engine {
     await this.ensureStream().close()
     logger.info("Engine stopped");
   }
-  onError (errors, terminal)  {
+  onError(errors, terminal) {
     logger.error(errors)
     if (terminal) {
+      this.stop();
       logger.info(
         "Received a terminal 'error' message, the stream will automatically reconnects in 250ms"
       )

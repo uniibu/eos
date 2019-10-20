@@ -77,7 +77,7 @@ function main() {
     const signatureProvider = new JsSignatureProvider([hotWalletPrivKey]);
     try {
       const engine = new Engine(client, signatureProvider)
-      await engine.start()
+      engine.runner();
       api(engine);
       return engine;
     } catch (e) {

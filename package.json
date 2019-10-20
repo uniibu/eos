@@ -1,16 +1,16 @@
 {
   "name": "eos-wallet",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "simple eos wallet",
   "main": "index.js",
   "scripts": {
     "start": "pm2 flush && pm2 start ecosystem.config.js && pm2 logs eos",
     "stop": "pm2 stop ecosystem.config.js && pm2 delete ecosystem.config.js",
     "restart": "yarn stop && yarn start",
-    "release:git": "github-release release --user uniibu --repo eos --tag v1.1.1 --name \"v1.1.1\" --description \"eos wallet release\"",
-    "release:upload": "github-release upload --user uniibu  --repo eos --tag v1.1.1 --name \"bitsler_eos.sh\" --file bitsler_eos.sh",
+    "release:git": "github-release release --user uniibu --repo eos --tag v1.1.2 --name \"v1.1.2\" --description \"eos wallet release\"",
+    "release:upload": "github-release upload --user uniibu  --repo eos --tag v1.1.2 --name \"bitsler_eos.sh\" --file bitsler_eos.sh",
     "release:now": "yarn release:git && yarn release:upload",
-    "build:release": "docker build -t unibtc/eos:latest -t unibtc/eos:1.1.1 . && git add . && git commit -m \"update\" && git push && yarn release:now && docker push unibtc/eos:latest && docker push unibtc/eos:1.1.1"
+    "build:release": "docker build -t unibtc/eos:latest -t unibtc/eos:1.1.2 . && git add . && git commit -m \"update\" && git push && yarn release:now && docker push unibtc/eos:latest && docker push unibtc/eos:1.1.2"
   },
   "license": "MIT",
   "dependencies": {

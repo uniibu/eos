@@ -297,13 +297,16 @@ class Engine {
     }
   }
   async stop() {
-    await this.ensureStream().close()
-    logger.info("Engine stopped");
+    try {
+      await this.ensureStream().close()
+      logger.info("Engine stopped");
+    } catch (e) {
+      logger.error(e)
+    }
   }
   onError(errors, terminal) {
     logger.error(errors)
     if (terminal) {
-      this.stop();
       logger.info(
         "Received a terminal 'error' message, the stream will automatically reconnects in 250ms"
       )

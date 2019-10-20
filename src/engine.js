@@ -307,6 +307,7 @@ class Engine {
   onError(errors, terminal) {
     logger.error(errors)
     if (terminal) {
+      this.stop();
       logger.info(
         "Received a terminal 'error' message, the stream will automatically reconnects in 250ms"
       )

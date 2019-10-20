@@ -10,7 +10,8 @@ export default async function runMain(main) {
   })
   try {
     const engine = await main();
-    process.on('SIGINT', function() {
+    process.on('SIGINT', () => {
+      logger.info('exiting')
       engine.stop().then(process.exit)
     });
   } catch (error) {

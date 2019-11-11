@@ -62,17 +62,9 @@ class Engine {
     this.initialStake = getStake() || false;
     logger.info( `Engine starting in ${process.env.NODE_ENV} mode` )
     let latest = getBlock();
-    const latestBlock = await this.latestBlock();
-    let start_block = latestBlock - latest
-    if ( start_block > 3600 ) {
-      start_block = -3600;
-      logger.warn( 'Could only retrieve last 3600 blocks!' )
-    } else {
-      start_block = -start_block;
-    }
 
-    logger.info( 'Starting at block: ', latestBlock + start_block, 'with cursor', lastPersistedCursor )
-    this.lastCommittedBlockNum = latestBlock + start_block;
+    logger.info( 'Starting at block: ', latest, 'with cursor', lastPersistedCursor )
+    this.lastCommittedBlockNum = latest;
     this.stream = await this.client.graphql(
       getQuery,
       ( message ) => {
@@ -82,14 +74,13 @@ class Engine {
         if ( message.type === "error" ) {
           this.onError( message.errors, message.terminal )
         }
-        if ( message.type === "complete" ) {
+        if ( message.type === "complete" || message.type === "stop" ) {
           this.onComplete()
         }
       }, {
         variables: {
           query: `account:eosio.token receiver:${HOTWALLET_ACCOUNT} action:transfer`,
           lowBlockNum: lastPersistedCursor ? 0 : this.lastCommittedBlockNum,
-          highBlockNum: 0,
           cursor: lastPersistedCursor
         }
       }
@@ -129,7 +120,10 @@ class Engine {
   onListening() {
     logger.info( "Stream is now listening for action(s)" )
   }
+  onComplete() {
+      logger.info( "Stream completed sync, restarting..." )
 
+  }
   onProgress( blockId, blockNum, cursor ) {
     logger.info( `Live marker received @ ${blockId} ${blockNum}` )
     this.lastCommittedBlockNum = blockNum

@@ -62,7 +62,8 @@ class Engine {
     this.initialStake = getStake() || false;
     logger.info( `Engine starting in ${process.env.NODE_ENV} mode` )
     let latest = getBlock();
-    if(!latest) {
+    latest = parseInt(latest);
+    if(!latest || isNaN(latest)) {
         latest = await this.latestBlock();
     }
     logger.info( 'Starting at block: ', latest, 'with cursor', lastPersistedCursor )
@@ -183,9 +184,9 @@ class Engine {
   async latestBlock( head = false ) {
     const { head_block_num, last_irreversible_block_num } = await this.rpc.get_info();
     if ( !DEVELOPMENT && !head ) {
-      return last_irreversible_block_num;
+      return parseInt(last_irreversible_block_num);
     }
-    return head_block_num;
+    return parseInt(head_block_num);
   }
   async checkResource() {
     logger.info( 'Checking resources...' )

@@ -32,7 +32,7 @@ class Engine {
         if ( this.stream ) {
           await this.stop();
         }
-        updateBlock( "" );
+
         return this.start();
       }
       logger.info( 'Sync is working' )
@@ -62,7 +62,9 @@ class Engine {
     this.initialStake = getStake() || false;
     logger.info( `Engine starting in ${process.env.NODE_ENV} mode` )
     let latest = getBlock();
-
+    if(!latest) {
+        latest = await this.latestBlock();
+    }
     logger.info( 'Starting at block: ', latest, 'with cursor', lastPersistedCursor )
     this.lastCommittedBlockNum = latest;
     this.stream = await this.client.graphql(
@@ -92,7 +94,7 @@ class Engine {
         "<============= Stream restarted =============>"
       )
       logger.info()
-      updateCursor( "" )
+
     }
     logger.info( "Stream connected, ready to receive messages" )
   }

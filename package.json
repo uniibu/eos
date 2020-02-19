@@ -1,6 +1,6 @@
 {
   "name": "eos-wallet",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "simple eos wallet",
   "type": "module",
   "main": "index.js",

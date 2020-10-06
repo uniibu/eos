@@ -9,19 +9,20 @@ const { exec } = require('child_process');
 const pkgjson = require(path.resolve(__dirname, '../package.json'));
 const {secret} = require(path.resolve(__dirname, '../db.json'))
 const rootPath = path.resolve(__dirname, '../')
-
-const reqLocal = async (route, data) => {
+const request = require(path.resolve(__dirname, 'request.js'))
+const reqLocal = async (route, data, method = 'get') => {
   try {
-    let uri = `http://localhost:${process.env.PORT}/${route}?key=${secret.key}`;
-    if (data) {
-      uri += `&${data}`;
+    let uri = `http://localhost:${process.env.PORT}/${route}`;
+    let query = secret;
+    if(method === 'post') {
+        return await request.poster(uri,query,data)
+    }else {
+        if(data){
+            Object.assign(query,data)
+        }
+        return await request.getter(uri,query)
     }
-    const payload = {
-      url: uri,
-      method: 'get',
-      parse: 'json'
-    };
-    return await p(payload);
+
   } catch (e) {
     console.error(e);
   }
@@ -39,6 +40,17 @@ program
     if (r.body.success) {
       console.log(`${r.body.balance.value} ${r.body.balance.currency}`);
     } else {
+      console.log(r.body.error || 'Internal Error');
+    }
+  });
+program
+  .command('sendTo <address> <memo> <amount>')
+  .description('Send EOS to specific address')
+  .action(async (address, memo, amount) => {
+    const r = await reqLocal('withdraw', {address, memo, amount}, 'post');
+    if (r.body.success) {
+      console.log(`${r.body.txid}`);
+    } else {
       console.log('Internal Error');
     }
   });
@@ -46,32 +58,32 @@ program
   .command('validateAddress <address>')
   .description('Validates if an address format is correct and active')
   .action(async address => {
-    const r = await reqLocal('validate', `address=${address}`);
+    const r = await reqLocal('validate', {address});
     if (r.body.success) {
       console.log('Address is valid and active');
     } else {
       console.log('Invalid or inactive address');
     }
   });
-
+program
+  .command('getBlockNumber')
+  .description('Validates if an address format is correct and active')
+  .action(async () => {
+    const r = await reqLocal('getblocknumber');
+    if (r.body.success) {
+      console.log(r.body.data);
+    } else {
+      console.log(r.body.error || "error");
+    }
+  });
 program
   .command('getTransactions')
   .description('Returns the last 100 transactions by default of the master address')
   .option('-l, --limit [number]', 'Number of transactions to return')
   .option('-f, --filter [deposit|withdraw]', 'Accepts values \'deposit\' or \'withdraw\'')
   .action(async options => {
-    const limit = options.limit || 10;
-    const filter = options.filter;
-    let data = limit ? `limit=${limit}` : '';
-    if (filter) {
-      const a = `filter=${filter}`;
-      if (data) {
-        data += `&${a}`;
-      } else {
-        data += a;
-      }
-    }
-    const r = await reqLocal('gettransactions', data);
+    options.limit = options.limit || 10;
+    const r = await reqLocal('gettransactions', options);
     if (r.body.success) {
       console.log(JSON.stringify(r.body.transactions, null, 2));
     } else {

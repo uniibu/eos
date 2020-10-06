@@ -2,11 +2,10 @@ import Koa from 'koa';
 import Router from 'koa-router';
 import bouncer from 'koa-bouncer';
 import bodyParser from 'koa-bodyparser';
-import logger from './logger';
 import { getKey } from '../db/index.js'
 import helpers from './helpers';
 
-function apiStart(engine) {
+function apiStart(engine, logger) {
   const app = new Koa();
   const router = new Router();
   app.use(
@@ -49,6 +48,11 @@ function apiStart(engine) {
     const bal = await engine.getBalance();
     ctx.body = { success: true, balance: { value: bal, currency: 'EOS' } };
   });
+  router.get('/getblocknumber', async ctx => {
+    logger.info('RPC /getblocknumber was called');
+    const block = engine.blockNumber;
+    ctx.body = { success: true, data: block };
+  });
   router.get('/validate', async ctx => {
     logger.info('RPC /validate was called:', ctx.request.query);
     ctx.validateQuery('address').required('Missing address').isString().trim();
@@ -64,7 +68,7 @@ function apiStart(engine) {
     ctx.validateQuery('filter').optional().isIn(['deposit', 'withdraw'], 'Invalid filter');
     const limit = +ctx.vals.limit || 100;
     let txs = await engine.listTx(limit, ctx.vals.filter);
-    ctx.body = { success: true, transactions: txs.map(result => result.lifecycle.id) };
+    ctx.body = { success: true, transactions: txs };
   });
   router.post('/withdraw', async (ctx) => {
     logger.info('RPC /withdraw was called:', ctx.request.body);

@@ -1,8 +1,8 @@
 import { PrivateKey } from 'eosjs-ecc';
 import { updateOwner, updateActive, updateKey } from '../db/index.js'
-import logger from './logger';
+import loggerInit from './logger';
 import helpers from './helpers'
-
+const logger = loggerInit();
 async function getRandom() {
   logger.info('Generating secure seeds');
   let privateWif = await PrivateKey.randomKey()

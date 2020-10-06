@@ -1,3 +1,4 @@
+
 global.fetch = require('node-fetch')
 global.WebSocket = require('ws')
 import {
@@ -11,17 +12,15 @@ import { Engine } from './engine';
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
 import createAccount from './createAccount';
 import { getKey, getOwner, getActive } from '../db/index.js';
-import logger from './logger';
 import helpers from './helpers';
 import api from './api';
 
 function main() {
-  return async function startClient() {
+  return async function startClient(logger) {
     logger.info('Checking wallet...')
-    const client = createDfuseClient({
-      apiKey: DFUSE_API_KEY,
+   const client = createDfuseClient({
       network: DFUSE_API_NETWORK,
-      apiTokenStore: new FileApiTokenStore("/tmp/dfuse-token.json"),
+      authentication: false,
       graphqlStreamClientOptions: {
         socketOptions: {
           reconnectDelayInMs: 250
@@ -76,9 +75,9 @@ function main() {
 
     const signatureProvider = new JsSignatureProvider([hotWalletPrivKey]);
     try {
-      const engine = new Engine(client, signatureProvider)
+      const engine = new Engine(client, signatureProvider, logger)
       engine.runner();
-      api(engine);
+      api(engine, logger);
       return engine;
     } catch (e) {
       client.release()

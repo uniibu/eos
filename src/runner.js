@@ -1,6 +1,9 @@
-import logger from './logger';
+import * as loggerInit from './logger';
+import * as logInstance from './lg';
 export default async function runMain(main) {
 
+  const log = await logInstance.default()
+  const logger = loggerInit.default(log);
   /**
    * Helper to display `unhandledRejection` rejection errors.
    */
@@ -9,7 +12,8 @@ export default async function runMain(main) {
     throw error
   })
   try {
-    const engine = await main();
+    logger.info("starting")
+    const engine = await main(logger);
     process.on('SIGINT', () => {
       logger.info('exiting')
       engine.stop().then(process.exit)

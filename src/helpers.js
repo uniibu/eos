@@ -12,7 +12,8 @@ const genKey = () => {
   return crypto.randomBytes(8).toString('hex');
 }
 const checkAccountFormat = (accnt) => {
-  return /^[a-z1-5][a-z1-5\.]{1,10}[a-z1-5]$/.test(accnt);
+  const regex = new RegExp('(^[a-z1-5.]{0,11}[a-z1-5]$)|(^[a-z1-5.]{12}[a-j1-5]$)')
+  return regex.test(accnt);
 }
 const truncateFour = (num = 0) => {
   const str = parseFloat(num).toFixed(12);

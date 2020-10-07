@@ -25,10 +25,16 @@ const noop = () => {}
 const logNoop = {
   log:noop,
   info:noop,
-  error:noop
+  error:noop,
+  close: noop,
+  connected: noop
 }
 function loggerInit(lg) {
   lg = lg || logNoop;
+  if(lg.connected() && process.env.LOGGING == "disable") {
+    lg.close()
+    lg = logNoop;
+  }
   const wrap = {};
 
   wrap.info = (...args) => {

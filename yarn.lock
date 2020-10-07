@@ -18,10 +18,10 @@
     enabled "2.0.x"
     kuler "^2.0.0"
 
-"@devnodes/logger-client@^1.0.4":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@devnodes/logger-client/-/logger-client-1.0.4.tgz#035bec3e69d4c22a46b09ccb32b27e45df806d82"
-  integrity sha512-xVAC/iJVfZIkc1TRY2O287m5cjtMiUBXUoBL0XGNMMS+Alzj3PvdAsYCNIfgDJpmf1IKXbEu3KWBAqZa8LCAUQ==
+"@devnodes/logger-client@^1.0.6":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@devnodes/logger-client/-/logger-client-1.0.6.tgz#c6e65288626885226583867693fd28943e38c932"
+  integrity sha512-1T9ygtXe0rjQvcSPy/p7yxFwR2PeXuA4KwKGb82jFJ5L+3fj9VsK7PcAA85rVvSjzA8ok72Zvl4z5U2ipYw/uA==
   dependencies:
     reconnecting-websocket "^4.4.0"
     ws "^7.3.1"

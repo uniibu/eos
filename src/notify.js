@@ -1,9 +1,9 @@
 import queue from 'queuing';
-import loggerInit from './logger';
+import logger from './logger';
 import p from 'phin';
 import pkgjson from '../package.json';
 const q = queue({ autostart: true, retry: true, concurrency: 1, delay: 5000 });
-const logger = loggerInit();
+
 const got = async (method, uri, payload) => {
   const opts = {
     url: uri,

@@ -3,8 +3,8 @@ import { EOS_REST_API, EOS_PRIV_KEY, INITIAL_STAKE, HOTWALLET_ACCOUNT, EOS_ACCOU
 import { Api, JsonRpc } from 'eosjs';
 import { TextEncoder, TextDecoder } from 'util'
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
-import loggerInit from './logger';
-const logger = loggerInit();
+import logger from './logger';
+
 export default async function createAccount() {
   try {
     logger.info('Create new EOS account');

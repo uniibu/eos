@@ -1,7 +1,6 @@
 import { dynamicMessageDispatcher, InboundMessageType, waitFor } from "@dfuse/client"
 import { Api, JsonRpc, RpcError } from 'eosjs';
 import { TextEncoder, TextDecoder } from 'util'
-
 import { EOS_REST_API, DEVELOPMENT, HOTWALLET_ACCOUNT, STAKE } from '../config';
 import { getStake, getBlock, updateStake, updateBlock, updateCursor, getCursor } from '../db/index.js';
 import notify from './notify';

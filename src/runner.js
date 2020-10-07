@@ -1,9 +1,7 @@
-import * as loggerInit from './logger';
-import * as logInstance from './lg';
+import logger from './logger';
+
 export default async function runMain(main) {
 
-  const log = await logInstance.default()
-  const logger = loggerInit.default(log);
   /**
    * Helper to display `unhandledRejection` rejection errors.
    */

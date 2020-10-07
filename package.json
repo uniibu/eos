@@ -14,7 +14,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@devnodes/logger-client": "^1.0.6",
+    "@devnodes/logger-client": "^1.1.2",
     "@dfuse/client": "0.3.15",
     "boxen": "^4.2.0",
     "commander": "^6.1.0",

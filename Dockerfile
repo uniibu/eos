@@ -1,5 +1,6 @@
 FROM bitsler/wallet-base-node:1.0.3
 
+USER wallet
 RUN mkdir -p /wallet/app && sudo ln -s /wallet/app /usr/src
 ENV APP /wallet/app
 WORKDIR $APP

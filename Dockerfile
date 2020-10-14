@@ -1,16 +1,15 @@
-FROM bitsler/wallet-base-node:1.0.3
+FROM bitsler/wallet-base-node:1.0.4
 
-USER wallet
-RUN mkdir -p /wallet/app && sudo ln -s /wallet/app /usr/src
+RUN mkdir -p /wallet/app && ln -s /wallet/app /usr/src
 ENV APP /wallet/app
 WORKDIR $APP
 
-COPY --chown=wallet:wallet package*.json ./
-COPY --chown=wallet:wallet yarn.lock ./
+COPY package*.json ./
+COPY yarn.lock ./
 
 RUN yarn install --prod
-COPY --chown=wallet:wallet . .
-RUN sudo chmod +x $APP/bin/eos-cli && sudo ln -s $APP/bin/eos-cli /usr/bin/
+COPY . .
+RUN chmod +x $APP/bin/eos-cli && ln -s $APP/bin/eos-cli /usr/bin/
 
 EXPOSE 8866
 

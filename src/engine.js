@@ -17,6 +17,7 @@ class Engine {
     this.initialStake = false;
     this.lastSync = 0;
     this.wasError = false;
+    this.initialized = false;
   }
   get blockNumber() {
     return getBlock();
@@ -29,20 +30,18 @@ class Engine {
   }
   async syncCheck() {
     try {
-      if (this.lastSync == 0 && !this.wasError) {
+      if (!this.initialized) {
         return this.start();
-      } else if (this.lastSync != 0 && (Date.now() - this.lastSync) >= 900000) {
-        // not sync in last 15mins
-        process.exit(1)
+      } else {
+        const latestBlock = await this.latestBlock();
+        const commitedBlock = this.blockNumber;
+        const diff = latestBlock - commitedBlock;
+        if(diff > 50) {
+          this.logger.info("NOT SYNCING latest:",latestBlock, "last commited block:",commitedBlock);
+          process.exit(1)
+        }
+        this.logger.info('SYNCING latest:',latestBlock,"last commited block:",commitedBlock)
       }
-      const latestBlock = await this.latestBlock();
-      const commitedBlock = this.blockNumber;
-      const diff = latestBlock - commitedBlock;
-      if(diff > 50) {
-        this.logger.info("NOT SYNCING latest:",latestBlock, "last commited block:",commitedBlock);
-        process.exit(1)
-      }
-      this.logger.info('Sync is working')
     } catch (e) {
       this.logger.error(e)
     }
@@ -61,6 +60,7 @@ class Engine {
   }
 
   async start() {
+    this.initialized =  true;
     let lastPersistedCursor = ""
     const lastCursorPath = getCursor();
     if (lastCursorPath) {

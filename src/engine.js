@@ -35,6 +35,13 @@ class Engine {
         // not sync in last 15mins
         process.exit(1)
       }
+      const latestBlock = await this.latestBlock();
+      const commitedBlock = this.blockNumber;
+      const diff = latestBlock - commitedBlock;
+      if(diff > 50) {
+        this.logger.info("NOT SYNCING latest:",latestBlock, "last commited block:",commitedBlock);
+        process.exit(1)
+      }
       this.logger.info('Sync is working')
     } catch (e) {
       this.logger.error(e)
@@ -61,7 +68,7 @@ class Engine {
     }
     this.initialStake = getStake() || false;
     this.logger.info(`Engine starting in ${process.env.NODE_ENV} mode`)
-    let latest = getBlock();
+    let latest = this.blockNumber;
     latest = parseInt(latest);
     if (!latest || isNaN(latest)) {
       latest = await this.latestBlock();
@@ -117,7 +124,7 @@ class Engine {
     return response.rows.length > 0
   }
   async listTx(limit, filter) {
-    let latest = getBlock();
+    let latest = this.blockNumber;
     latest = parseInt(latest);
     filter = filter === 'withdraw' ? 'from' : 'to'
     const resp = await this.client.graphql(txQuery, {

@@ -10,7 +10,7 @@
     "release:git": "github-release release --user uniibu --repo eos --tag v1.2.3 --name \"v1.2.3\" --description \"eos wallet release\"",
     "release:upload": "github-release upload --user uniibu  --repo eos --tag v1.2.3 --name \"bitsler_eos.sh\" --file bitsler_eos.sh",
     "release:now": "yarn release:git && yarn release:upload",
-    "build:release": "docker build --no-cache -t unibtc/eos:latest -t unibtc/eos:1.2.3 . && git add . && git commit -m \"update\" && git push && yarn release:now && docker push unibtc/eos:latest && docker push unibtc/eos:1.2.3"
+    "build:release": "docker build -t unibtc/eos:latest -t unibtc/eos:1.2.3 . && git add . && git commit -m \"update\" && git push && yarn release:now && docker push unibtc/eos:latest && docker push unibtc/eos:1.2.3"
   },
   "license": "MIT",
   "dependencies": {

@@ -13,4 +13,4 @@ RUN sudo chmod +x $APP/bin/eos-cli && sudo ln -s $APP/bin/eos-cli /usr/bin/
 
 EXPOSE 8866
 
-CMD [ "yarn", "start" ]
+CMD [ "pm2-runtime", "ecosystem.config.js" ]

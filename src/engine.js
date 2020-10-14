@@ -18,13 +18,14 @@ class Engine {
     this.lastSync = 0;
     this.wasError = false;
     this.initialized = false;
+    this.lastRestart = Date.now();
   }
   get blockNumber() {
     return getBlock();
   }
   async runner() {
     this.syncCheck();
-    await waitFor(300000)
+    await waitFor(DEVELOPMENT?20000:300000)
     this.logger.info('Sync check...')
     this.runner();
   }
@@ -36,7 +37,7 @@ class Engine {
         const latestBlock = await this.latestBlock();
         const commitedBlock = this.blockNumber;
         const diff = latestBlock - commitedBlock;
-        if(diff > 50) {
+        if(diff > 50 && (Date.now() - this.lastSync) >= 600000 && (Date.now() - this.lastRestart) >= 300000) {
           this.logger.info("NOT SYNCING latest:",latestBlock, "last commited block:",commitedBlock);
           process.exit(1)
         }
@@ -104,6 +105,7 @@ class Engine {
         "<============= Stream restarted =============>"
       )
       this.logger.info()
+      this.lastRestart = Date.now();
 
     }
     this.logger.info("Stream connected, ready to receive messages")

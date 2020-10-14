@@ -5,11 +5,11 @@ RUN mkdir -p /wallet/app && sudo ln -s /wallet/app /usr/src
 ENV APP /wallet/app
 WORKDIR $APP
 
-COPY package*.json ./
-COPY yarn.lock ./
+COPY --chown=wallet:wallet package*.json ./
+COPY --chown=wallet:wallet yarn.lock ./
 
 RUN yarn install --prod
-COPY . .
+COPY --chown=wallet:wallet . .
 RUN sudo chmod +x $APP/bin/eos-cli && sudo ln -s $APP/bin/eos-cli /usr/bin/
 
 EXPOSE 8866

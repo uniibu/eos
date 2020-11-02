@@ -19,6 +19,7 @@ class Engine {
     this.wasError = false;
     this.initialized = false;
     this.lastRestart = Date.now();
+    this.errorCount = 0;
   }
   get blockNumber() {
     return getBlock();
@@ -39,6 +40,7 @@ class Engine {
         const diff = latestBlock - commitedBlock;
         if(diff > 50 && (Date.now() - this.lastSync) >= 600000 && (Date.now() - this.lastRestart) >= 300000) {
           this.logger.info("NOT SYNCING latest:",latestBlock, "last commited block:",commitedBlock);
+          await this.stop()
           process.exit(1)
         }
         this.logger.info('SYNCING latest:',latestBlock,"last commited block:",commitedBlock)
@@ -69,8 +71,9 @@ class Engine {
     }
     this.initialStake = getStake() || false;
     this.logger.info(`Engine starting in ${process.env.NODE_ENV} mode`)
-    let latest = this.blockNumber;
+    let latest = getBlock();
     latest = parseInt(latest);
+    this.logger.info(`last commited block`, latest);
     if (!latest || isNaN(latest)) {
       latest = await this.latestBlock();
     }
@@ -153,6 +156,7 @@ class Engine {
   }
   onProgress(blockId, blockNum, cursor) {
     this.logger.info(`Live marker received @ ${blockId} ${blockNum}`)
+    this.errorCount  = 0;
     this.lastCommittedBlockNum = blockNum
     updateBlock(this.lastCommittedBlockNum)
     this.commit(cursor)
@@ -207,7 +211,7 @@ class Engine {
   }
   async latestBlock(head = false) {
     const { head_block_num, last_irreversible_block_num } = await this.rpc.get_info();
-    if (!DEVELOPMENT && !head) {
+    if (!head) {
       return parseInt(last_irreversible_block_num);
     }
     return parseInt(head_block_num);
@@ -311,10 +315,17 @@ class Engine {
   }
   async onError(errors, terminal) {
     this.logger.error(errors)
+    this.errorCount++;
     if (terminal) {
       this.logger.info(
         "Received a terminal 'error' message, the stream will automatically reconnects in 250ms"
       )
+    }
+    if(this.errorCount >= 5) {
+        await this.stop();
+        updateCursor("");
+        updateBlock(-1);
+        process.exit(1)
     }
   }
   ensureStream() {
